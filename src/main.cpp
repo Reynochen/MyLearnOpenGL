@@ -1,23 +1,10 @@
 #include "glad/glad.h"
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include "shader.hpp"
 
-int winSizeX = 640;
-int winSizeY = 480;
-
-void glfwWindowSizeCallBack(GLFWwindow* pWindow, int width, int height)
-{
-    winSizeX = width;
-    winSizeY = height;
-    glViewport(0, 0, winSizeX, winSizeY);
-    std::cout << "You sus\n";
-}
-
-void glfwKeyCallBack(GLFWwindow* pWindow, int key, int scancode, int action, int mode)
-{
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(pWindow, true);
-}
+void glfwWindowSizeCallBack(GLFWwindow* window, int width, int height);
+void glfwKeyCallBack(GLFWwindow* window, int key, int scancode, int action, int mode);
 
 int main(void)
 {
@@ -25,42 +12,85 @@ int main(void)
     if (!glfwInit())
         return -1;
 
+    glfwWindowHint(GLFW_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_VERSION_MINOR, 3);
+    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
     /* Create a windowed mode window and its OpenGL context */
-    GLFWwindow* pWindow = glfwCreateWindow(winSizeX , winSizeY, "Hello World", NULL, NULL);
-    if (!pWindow) {
+    GLFWwindow* window = glfwCreateWindow(800, 600, "Create by Reynochen", NULL, NULL);
+    if (!window) {
         glfwTerminate();
         return -1;
     }
 
-    glfwSetWindowSizeCallback(pWindow, glfwWindowSizeCallBack);
-    glfwSetKeyCallback(pWindow, glfwKeyCallBack);
-
     /* Make the window's context current */
-    glfwMakeContextCurrent(pWindow);
+    glfwMakeContextCurrent(window);
 
     if (!gladLoadGL()) {
         std::cout << "Glad not loaded";
         return -1;
-    }
-    
+    }    
+    //Callback window resize and callback key
+    glfwSetWindowSizeCallback(window, glfwWindowSizeCallBack);
+    glfwSetKeyCallback(window, glfwKeyCallBack);
+
     std::cout << "Render: " << glGetString(GL_RENDERER) << '\n';
     std::cout << "OpenGL " << glGetString(GL_VERSION) << '\n';
 
-    glClearColor(0, 0, 1, 0);
 
-    /* Loop until the user closes the window */
-    while (!glfwWindowShouldClose(pWindow))
+    float vertices[] {
+        -0.5f, -0.5f, 0.0f,
+         0.5f, -0.5f, 0.0f,
+         0.0f, 0.5f, 0.0f
+    };
+
+    unsigned int vao, vbo;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+
+    glBindVertexArray(vao);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    
+    Shader shader("Red.vs","Red.fs");
+
+    while (!glfwWindowShouldClose(window))
     {
-        /* Render here */
         glClear(GL_COLOR_BUFFER_BIT);
 
-        /* Swap front and back buffers */
-        glfwSwapBuffers(pWindow);
+        shader.use();
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
-        /* Poll for and process events */
+        glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     glfwTerminate();
     return 0;
+}
+
+void glfwWindowSizeCallBack(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}
+
+void glfwKeyCallBack(GLFWwindow* window, int key, int scancode, int action, int mode)
+{
+    switch (key)
+    {
+    case GLFW_KEY_ESCAPE:
+        if(action == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, true);
+        break;
+    }
 }
