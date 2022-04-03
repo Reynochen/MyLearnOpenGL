@@ -3,7 +3,6 @@
 
 #include "glad/glad.h"
 #include <string>
-#include <sstream>
 #include <fstream>
 #include <iostream>
 
@@ -12,7 +11,7 @@ class Shader
     unsigned int ID;
     std::string FolderShaderPath = "../Shaders/";
 public:
-    Shader(std::string vertexFile,  std::string fragmentFile);
+    Shader(const char* vertexFile, const char* fragmentFile);
     ~Shader();
 
     void use();

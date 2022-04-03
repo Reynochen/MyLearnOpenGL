@@ -1,37 +1,38 @@
 #include "shader.hpp"
 
-Shader::Shader(std::string vertexFile,  std::string fragmentFile)
+Shader::Shader(const char* vertexFile, const char* fragmentFile)
 {
     std::string vertexBuffer;
     std::string fragmentBuffer;
 
     std::ifstream openFile;
+    char buffer;
 
-    openFile.exceptions(std::ifstream::badbit | std::ifstream::failbit);
-    try
-    {
-        std::stringstream streamCode;
-        std::stringstream streamCode2;
-
-        openFile.open(this->FolderShaderPath + vertexFile);
-        streamCode << openFile.rdbuf();
-        openFile.close();
-
-        vertexBuffer = streamCode.str();
-
-        openFile.open(this->FolderShaderPath + fragmentFile);
-        streamCode2 << openFile.rdbuf();
-        openFile.close();
-
-        fragmentBuffer = streamCode2.str();
+    ////////////////Open file
+    //Open Vertex Shader File
+    openFile.open(this->FolderShaderPath + vertexFile);
+    if(!openFile.is_open()) {
+        std::cerr << "SHADER::ERROR cannot open file.\n"; 
+        return;
     }
-    catch(const std::exception& e)
-    {
-        std::cerr << "ERROR SHADER Cant load shader file" << '\n';
+    while(openFile.get(buffer)) 
+        vertexBuffer += buffer;
+    openFile.close();
+
+    //Open Fragment Shader File
+    openFile.open(this->FolderShaderPath + fragmentFile);
+    if(!openFile.is_open()) {
+        std::cerr << "SHADER::ERROR cannot open file.\n"; 
+        return;
     }
+    while(openFile.get(buffer)) 
+        fragmentBuffer += buffer;
+    openFile.close();
+        
     
     const char* vertexCode = vertexBuffer.c_str();
     const char* fragmentCode = fragmentBuffer.c_str();
+    
 
     unsigned int vertexShader, fragmentShader;
     int success;
