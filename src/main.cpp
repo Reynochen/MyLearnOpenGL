@@ -7,6 +7,8 @@
 void glfwWindowSizeCallBack(GLFWwindow* window, int width, int height);
 void glfwKeyCallBack(GLFWwindow* window, int key, int scancode, int action, int mode);
 
+float scale = 1;
+
 int main(void)
 {
     /* Initialize the library */
@@ -41,7 +43,7 @@ int main(void)
     //Coords triangle
     float vertices[] {
         //Coords triangle       //Colors    //Texture coords
-        //x     y     z
+        //x     y     z         r  g  b     s     t
         -0.5f, -0.5f, 0.0f,     1, 1, 0,    0.0f, 0.0f, //низ лево
         -0.5f, 0.5f, 0.0f,      0, 0, 1,    0.0f, 1.0f, //вверх лево
         0.5f, 0.5f, 0.0f,       0, 0, 1,    1.0f, 1.0f, //вверх право
@@ -56,7 +58,6 @@ int main(void)
     //Create texture
     unsigned int texture[2];
     glGenTextures(2, texture);
-    glActiveTexture(GL_TEXTURE0);
 
     glBindTexture(GL_TEXTURE_2D, texture[0]);
     //Texture1 options
@@ -129,6 +130,7 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT);
 
         shader.use();
+        shader.setUniform("scale", scale);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture[0]);
         glActiveTexture(GL_TEXTURE1);
@@ -167,5 +169,13 @@ void glfwKeyCallBack(GLFWwindow* window, int key, int scancode, int action, int 
         else if(action == GLFW_RELEASE)
             glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         break;
+    case GLFW_KEY_UP:
+        if(action != GLFW_RELEASE)
+            scale -= 1;
+        break;
+    case GLFW_KEY_DOWN:
+        if(action != GLFW_RELEASE)
+            scale += 1;
+        break; 
     }
 }
