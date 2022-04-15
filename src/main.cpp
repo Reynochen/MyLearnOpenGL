@@ -3,11 +3,18 @@
 #include <iostream>
 #include "shader.hpp"
 #include "stb_image.h"
+#include <math.h>
+//GLM
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
 
 void glfwWindowSizeCallBack(GLFWwindow* window, int width, int height);
 void glfwKeyCallBack(GLFWwindow* window, int key, int scancode, int action, int mode);
 
 float scale = 1;
+float x, y;
+float dirx, diry;
 
 int main(void)
 {
@@ -56,8 +63,8 @@ int main(void)
     };
 
     //Create texture
-    unsigned int texture[2];
-    glGenTextures(2, texture);
+    unsigned int texture[3];
+    glGenTextures(3, texture);
 
     glBindTexture(GL_TEXTURE_2D, texture[0]);
     //Texture1 options
@@ -84,6 +91,16 @@ int main(void)
     data = stbi_load("que pro.png", &width, &height, &nrChannels, 0);
     if(data) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    } else {
+        std::cout << "Failed to load que pro texture." << '\n';
+    }
+    stbi_image_free(data);
+
+    glBindTexture(GL_TEXTURE_2D, texture[2]);
+    data = stbi_load("dimk.jpg", &width, &height, &nrChannels, 0);
+    if(data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     } else {
         std::cout << "Failed to load que pro texture." << '\n';
@@ -119,27 +136,63 @@ int main(void)
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     
-    Shader shader("Red.vs","Red.fs");
-    
+    Shader shader("Red.vs", "Red.fs");
+    Shader shader2("Red.vs", "Dimk.fs");
+
     shader.use();
     shader.setUniform("texture1", 0);
     shader.setUniform("texture2", 1);
+    
+    unsigned int transLoc = glGetUniformLocation(shader.getID(), "transform");
+    glm::mat4 trans = glm::mat4(1.0f);
+    
 
     while (!glfwWindowShouldClose(window))
     {
         glClear(GL_COLOR_BUFFER_BIT);
+        glBindVertexArray(vao);
 
+        //Dimk que pro
+        trans = glm::mat4(1.0f);
+        trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
+        trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0, 1, 0));
+        trans = glm::translate(trans, glm::vec3(sin(glfwGetTime()), 0, 0));
+        shader2.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture[2]);
+        glUniformMatrix4fv(glGetUniformLocation(shader2.getID(), "transform"), 1, GL_FALSE, glm::value_ptr(trans));
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        //'Controls'
+        x += dirx * 0.05;
+        y += diry * 0.05;
+        
+        if(y >= 1.4f)
+            y = -1.2;
+        else if(y <= -1.41f)
+            y = 1.2;
+        if(x >= 1.4f)
+            x = -1.2;
+        else if(x <= -1.41f)
+            x = 1.2;
+        //////////
+
+        //Super que pro
+        trans = glm::mat4(1.0f);
+        trans = glm::translate(trans, glm::vec3(x, y, 0.0f));
+        trans = glm::scale(trans, glm::vec3(sin(glfwGetTime()) / 2, 0.5, 0.5));
+        trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(1.0f, 0, 0.0f));
+        
         shader.use();
         shader.setUniform("scale", scale);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture[0]);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture[1]);
-        glBindVertexArray(vao);
+        glUniformMatrix4fv(transLoc, 1, GL_FALSE, glm::value_ptr(trans));
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        //glDrawArrays(GL_TRIANGLES, 0, 3);
 
+        trans = glm::mat4(1.0f);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -163,7 +216,7 @@ void glfwKeyCallBack(GLFWwindow* window, int key, int scancode, int action, int 
         else if(action == GLFW_RELEASE)
             glfwSetWindowShouldClose(window, true);
         break;
-    case GLFW_KEY_W:
+    case GLFW_KEY_E:
         if(action == GLFW_PRESS)
             glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
         else if(action == GLFW_RELEASE)
@@ -176,6 +229,31 @@ void glfwKeyCallBack(GLFWwindow* window, int key, int scancode, int action, int 
     case GLFW_KEY_DOWN:
         if(action != GLFW_RELEASE)
             scale += 1;
-        break; 
+        break;
+
+    case GLFW_KEY_W:
+        if(action != GLFW_RELEASE)
+            diry = 1;
+        else
+            diry = 0;
+        break;
+    case GLFW_KEY_A:
+        if(action != GLFW_RELEASE)
+            dirx = -1;
+        else
+            dirx = 0;
+        break;
+    case GLFW_KEY_S:
+        if(action != GLFW_RELEASE)
+            diry = -1;
+        else
+            diry = 0;
+        break;
+    case GLFW_KEY_D:
+        if(action != GLFW_RELEASE)
+            dirx = 1;
+        else
+            dirx = 0;
+        break;
     }
 }

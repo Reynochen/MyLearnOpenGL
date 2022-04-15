@@ -16,6 +16,7 @@ public:
 
     void use();
 
+    unsigned int getID();
     void setUniform(const std::string name, int value);
     void setUniform(const std::string name, float value);
     void setUniform(const std::string name, bool value);
