@@ -11,10 +11,19 @@
 
 void glfwWindowSizeCallBack(GLFWwindow* window, int width, int height);
 void glfwKeyCallBack(GLFWwindow* window, int key, int scancode, int action, int mode);
+void processInput(GLFWwindow* window);
 
 float scale = 1;
-float x, y;
-float dirx, diry;
+
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+bool forward, backward, left, right;
+
+//Camera
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 int main(void)
 {
@@ -48,23 +57,79 @@ int main(void)
     std::cout << "OpenGL " << glGetString(GL_VERSION) << '\n';
 
     //Coords triangle
-    float vertices[] {
+    /*float vertices[] {
         //Coords triangle       //Colors    //Texture coords
         //x     y     z         r  g  b     s     t
         -0.5f, -0.5f, 0.0f,     1, 1, 0,    0.0f, 0.0f, //низ лево
         -0.5f, 0.5f, 0.0f,      0, 0, 1,    0.0f, 1.0f, //вверх лево
         0.5f, 0.5f, 0.0f,       0, 0, 1,    1.0f, 1.0f, //вверх право
         0.5f, -0.5f, 0.0f,      1, 1, 0,    1.0f, 0.0f, //низ право
-    };
+    };*/
 
     unsigned int index[] {
         2, 0, 1,
         0, 3, 2,       
     };
 
+    float vertices[] {
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+        0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+        0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+    
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+        0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    
+        0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+        0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+        0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+        0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+    };
+    //Cube position
+    glm::vec3 cubePositions[] = {
+        glm::vec3( 0.0f,  0.0f,  0.0f), 
+        glm::vec3( 2.0f,  5.0f, -15.0f), 
+        glm::vec3(-1.5f, -2.2f, -2.5f),  
+        glm::vec3(-3.8f, -2.0f, -12.3f),  
+        glm::vec3( 2.4f, -0.4f, -3.5f),  
+        glm::vec3(-1.7f,  3.0f, -7.5f),  
+        glm::vec3( 1.3f, -2.0f, -2.5f),  
+        glm::vec3( 1.5f,  2.0f, -2.5f), 
+        glm::vec3( 1.5f,  0.2f, -1.5f), 
+        glm::vec3(-1.3f,  1.0f, -1.5f)  
+    };
     //Create texture
-    unsigned int texture[3];
-    glGenTextures(3, texture);
+    unsigned int texture[2];
+    glGenTextures(2, texture);
 
     glBindTexture(GL_TEXTURE_2D, texture[0]);
     //Texture1 options
@@ -77,7 +142,9 @@ int main(void)
 
     //Load wall texture
     int width, height, nrChannels;
-    unsigned char *data = stbi_load("wall.jpg", &width, &height, &nrChannels, 0);
+    unsigned char *data;
+    
+    data = stbi_load("wall.jpg", &width, &height, &nrChannels, 0);
     if(data) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
@@ -91,16 +158,6 @@ int main(void)
     data = stbi_load("que pro.png", &width, &height, &nrChannels, 0);
     if(data) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    } else {
-        std::cout << "Failed to load que pro texture." << '\n';
-    }
-    stbi_image_free(data);
-
-    glBindTexture(GL_TEXTURE_2D, texture[2]);
-    data = stbi_load("dimk.jpg", &width, &height, &nrChannels, 0);
-    if(data) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     } else {
         std::cout << "Failed to load que pro texture." << '\n';
@@ -121,14 +178,14 @@ int main(void)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index), index, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
+    //glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    //glEnableVertexAttribArray(2);
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -137,51 +194,34 @@ int main(void)
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     
     Shader shader("Red.vs", "Red.fs");
-    Shader shader2("Red.vs", "Dimk.fs");
 
     shader.use();
     shader.setUniform("texture1", 0);
     shader.setUniform("texture2", 1);
+
+    unsigned int modelLoc = glGetUniformLocation(shader.getID(), "model");
+    unsigned int viewLoc = glGetUniformLocation(shader.getID(), "view");
+    unsigned int projectionLoc = glGetUniformLocation(shader.getID(), "projection");
     
-    unsigned int transLoc = glGetUniformLocation(shader.getID(), "transform");
-    glm::mat4 trans = glm::mat4(1.0f);
-    
+    //Матрицы для пространства
+    glm::mat4 model = glm::mat4(1.0f);    
+
+    glm::mat4 view = glm::mat4(1.0f);
+
+    glm::mat4 projection = glm::mat4(1.0f);
+    projection = glm::perspective(glm::radians(85.0f), 1920.0f / 1080.0f, 0.1f, 100.0f);
+
+    //Enable z-buffer
+    glEnable(GL_DEPTH_TEST);
 
     while (!glfwWindowShouldClose(window))
     {
-        glClear(GL_COLOR_BUFFER_BIT);
-        glBindVertexArray(vao);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        //Dimk que pro
-        trans = glm::mat4(1.0f);
-        trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
-        trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0, 1, 0));
-        trans = glm::translate(trans, glm::vec3(sin(glfwGetTime()), 0, 0));
-        shader2.use();
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture[2]);
-        glUniformMatrix4fv(glGetUniformLocation(shader2.getID(), "transform"), 1, GL_FALSE, glm::value_ptr(trans));
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-        //'Controls'
-        x += dirx * 0.05;
-        y += diry * 0.05;
-        
-        if(y >= 1.4f)
-            y = -1.2;
-        else if(y <= -1.41f)
-            y = 1.2;
-        if(x >= 1.4f)
-            x = -1.2;
-        else if(x <= -1.41f)
-            x = 1.2;
-        //////////
-
-        //Super que pro
-        trans = glm::mat4(1.0f);
-        trans = glm::translate(trans, glm::vec3(x, y, 0.0f));
-        trans = glm::scale(trans, glm::vec3(sin(glfwGetTime()) / 2, 0.5, 0.5));
-        trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(1.0f, 0, 0.0f));
         
         shader.use();
         shader.setUniform("scale", scale);
@@ -189,14 +229,26 @@ int main(void)
         glBindTexture(GL_TEXTURE_2D, texture[0]);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture[1]);
-        glUniformMatrix4fv(transLoc, 1, GL_FALSE, glm::value_ptr(trans));
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(vao);
 
-        trans = glm::mat4(1.0f);
+        for (int i = 0; i < 10; i++) {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, cubePositions[i]);
+            if(i % 3 == 0)
+                model = glm::rotate(model, glm::radians((float)(glfwGetTime() * (i + 1) * 30)), glm::vec3(1.0f, 0.3f, 0.5f));
+            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+        
+        //Camera
+        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+        
+        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        processInput(window);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
     glfwTerminate();
     return 0;
 }
@@ -205,7 +257,22 @@ void glfwWindowSizeCallBack(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
 }
+void processInput(GLFWwindow* window)
+{
+    float currentFrame = glfwGetTime();
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
 
+    const float cameraSpeed = 2.5f * deltaTime; // настройте по вашему усмотрению
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        cameraPos += cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        cameraPos -= cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+}
 void glfwKeyCallBack(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
     switch (key)
@@ -229,31 +296,6 @@ void glfwKeyCallBack(GLFWwindow* window, int key, int scancode, int action, int 
     case GLFW_KEY_DOWN:
         if(action != GLFW_RELEASE)
             scale += 1;
-        break;
-
-    case GLFW_KEY_W:
-        if(action != GLFW_RELEASE)
-            diry = 1;
-        else
-            diry = 0;
-        break;
-    case GLFW_KEY_A:
-        if(action != GLFW_RELEASE)
-            dirx = -1;
-        else
-            dirx = 0;
-        break;
-    case GLFW_KEY_S:
-        if(action != GLFW_RELEASE)
-            diry = -1;
-        else
-            diry = 0;
-        break;
-    case GLFW_KEY_D:
-        if(action != GLFW_RELEASE)
-            dirx = 1;
-        else
-            dirx = 0;
         break;
     }
 }
