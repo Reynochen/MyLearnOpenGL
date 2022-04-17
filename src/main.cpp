@@ -12,6 +12,7 @@
 void glfwWindowSizeCallBack(GLFWwindow* window, int width, int height);
 void glfwKeyCallBack(GLFWwindow* window, int key, int scancode, int action, int mode);
 void processInput(GLFWwindow* window);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 float scale = 1;
 
@@ -20,10 +21,20 @@ float lastFrame = 0.0f;
 
 bool forward, backward, left, right;
 
+//Screen
+int winWidth = 1920, winHeight = 1080;
+
 //Camera
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+float yaw = -90.0f;
+float pitch = 0.0f;
+float lastX = winWidth / 2, lastY = winHeight / 2;
+const float sensivity = 10.0f;
+
+bool firstMouse = true;
 
 int main(void)
 {
@@ -36,7 +47,7 @@ int main(void)
     //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* Create a windowed mode window and its OpenGL context */
-    GLFWwindow* window = glfwCreateWindow(800, 600, "Create by Reynochen", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(winWidth, winHeight, "Create by Reynochen", NULL, NULL);
     if (!window) {
         glfwTerminate();
         return -1;
@@ -117,8 +128,8 @@ int main(void)
     //Cube position
     glm::vec3 cubePositions[] = {
         glm::vec3( 0.0f,  0.0f,  0.0f), 
-        glm::vec3( 2.0f,  5.0f, -15.0f), 
-        glm::vec3(-1.5f, -2.2f, -2.5f),  
+        glm::vec3( 0.0f,  1.0f,  0.0f), 
+        glm::vec3( 0.0f,  2.0f,  0.0f),  
         glm::vec3(-3.8f, -2.0f, -12.3f),  
         glm::vec3( 2.4f, -0.4f, -3.5f),  
         glm::vec3(-1.7f,  3.0f, -7.5f),  
@@ -209,11 +220,14 @@ int main(void)
     glm::mat4 view = glm::mat4(1.0f);
 
     glm::mat4 projection = glm::mat4(1.0f);
-    projection = glm::perspective(glm::radians(85.0f), 1920.0f / 1080.0f, 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(85.0f), (float)(winWidth) / (float)(winHeight), 0.1f, 100.0f);
 
     //Enable z-buffer
     glEnable(GL_DEPTH_TEST);
 
+    //Cursor
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
     while (!glfwWindowShouldClose(window))
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -231,7 +245,7 @@ int main(void)
         glBindTexture(GL_TEXTURE_2D, texture[1]);
         glBindVertexArray(vao);
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); i++) {
             model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
             if(i % 3 == 0)
@@ -257,13 +271,42 @@ void glfwWindowSizeCallBack(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
 }
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    if(firstMouse){
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+    
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+    
+    yaw += xoffset * sensivity * deltaTime;
+    pitch += yoffset * sensivity * deltaTime;
+    
+    if(pitch > 89.0f)
+        pitch = 89.0f;
+    if(pitch < -89.0f)
+        pitch = -89.0f;
+    
+    glm::vec3 direction;
+    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.y = sin(glm::radians(pitch));
+    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(direction);
+}
+
 void processInput(GLFWwindow* window)
 {
     float currentFrame = glfwGetTime();
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
-    const float cameraSpeed = 2.5f * deltaTime; // настройте по вашему усмотрению
+    const float cameraSpeed = 2.5f * deltaTime;
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         cameraPos += cameraSpeed * cameraFront;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
