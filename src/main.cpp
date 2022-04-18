@@ -13,6 +13,7 @@ void glfwWindowSizeCallBack(GLFWwindow* window, int width, int height);
 void glfwKeyCallBack(GLFWwindow* window, int key, int scancode, int action, int mode);
 void processInput(GLFWwindow* window);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void camera_pin();
 
 float scale = 1;
 
@@ -24,11 +25,18 @@ bool forward, backward, left, right;
 //Screen
 int winWidth = 1920, winHeight = 1080;
 
+//Player
+glm::vec3 playerPos = glm::vec3(0.0f, 0.0f, 3.0f);
+
 //Camera
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
+glm::vec3 direction;
+
+float distanceFromPlayer = 3;
+float angleAroundPlayer = 0;
 float yaw = -90.0f;
 float pitch = 0.0f;
 float lastX = winWidth / 2, lastY = winHeight / 2;
@@ -220,22 +228,21 @@ int main(void)
     glm::mat4 view = glm::mat4(1.0f);
 
     glm::mat4 projection = glm::mat4(1.0f);
-    projection = glm::perspective(glm::radians(85.0f), (float)(winWidth) / (float)(winHeight), 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(100.0f), (float)(winWidth) / (float)(winHeight), 0.1f, 100.0f);
 
     //Enable z-buffer
     glEnable(GL_DEPTH_TEST);
-
+    
     //Cursor
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
     while (!glfwWindowShouldClose(window))
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-
         
         shader.use();
         shader.setUniform("scale", scale);
@@ -244,7 +251,6 @@ int main(void)
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture[1]);
         glBindVertexArray(vao);
-
         for (int i = 0; i < sizeof(cubePositions) / sizeof(glm::vec3); i++) {
             model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
@@ -255,8 +261,15 @@ int main(void)
         }
         
         //Camera
+        camera_pin();
         view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-        
+        //Player draw;
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, playerPos);
+        shader.setUniformColor("globColor", 0.1f, 0.8f, 0.2f);
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        shader.setUniformColor("globColor", 1, 1, 1);
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         processInput(window);
@@ -272,13 +285,27 @@ void glfwWindowSizeCallBack(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
+void camera_pin()
+{
+    float horizDistance = distanceFromPlayer * cos(glm::radians(pitch));
+    float vertDistance = distanceFromPlayer * sin(glm::radians(pitch));
+    
+    float offsetX = (float)(horizDistance * sin(glm::radians(yaw)));
+    float offsetZ = (float)(horizDistance * cos(glm::radians(yaw)));
+
+    cameraPos.x = playerPos.x - offsetZ;
+    cameraPos.z = playerPos.z - offsetX;
+    cameraPos.y = playerPos.y - vertDistance;
+}
+
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    if(firstMouse){
+    if(firstMouse) {
         lastX = xpos;
         lastY = ypos;
         firstMouse = false;
     }
+
     
     float xoffset = xpos - lastX;
     float yoffset = lastY - ypos;
@@ -291,13 +318,15 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     if(pitch > 89.0f)
         pitch = 89.0f;
     if(pitch < -89.0f)
-        pitch = -89.0f;
+       pitch = -89.0f;
     
-    glm::vec3 direction;
-    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    direction.y = sin(glm::radians(pitch));
-    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    cameraFront = glm::normalize(direction);
+   
+    glm::vec3 dir;
+    dir.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    dir.y = sin(glm::radians(pitch));
+    dir.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    
+    cameraFront = glm::normalize(dir);
 }
 
 void processInput(GLFWwindow* window)
@@ -306,15 +335,27 @@ void processInput(GLFWwindow* window)
     deltaTime = currentFrame - lastFrame;
     lastFrame = currentFrame;
 
-    const float cameraSpeed = 2.5f * deltaTime;
+    float cameraSpeed = 2.5f * deltaTime;
+    if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        cameraSpeed = 5.5f * deltaTime;
+    else
+        cameraSpeed = 2.5f * deltaTime;
+
+    direction.x = cos(glm::radians(yaw));
+    direction.z = sin(glm::radians(yaw));
+    
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        cameraPos += cameraSpeed * cameraFront;
+        playerPos += cameraSpeed * direction;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        cameraPos -= cameraSpeed * cameraFront;
+        playerPos -= cameraSpeed * direction;    
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        playerPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        playerPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        playerPos += cameraUp * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        playerPos -= cameraUp * cameraSpeed;
 }
 void glfwKeyCallBack(GLFWwindow* window, int key, int scancode, int action, int mode)
 {

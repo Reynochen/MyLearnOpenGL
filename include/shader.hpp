@@ -20,6 +20,7 @@ public:
     void setUniform(const std::string name, int value);
     void setUniform(const std::string name, float value);
     void setUniform(const std::string name, bool value);
+    void setUniformColor(const std::string name, float r, float b, float g);
 };
 
 #endif
