@@ -36,7 +36,6 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 glm::vec3 direction;
 
 float distanceFromPlayer = 3;
-float angleAroundPlayer = 0;
 float yaw = -90.0f;
 float pitch = 0.0f;
 float lastX = winWidth / 2, lastY = winHeight / 2;
@@ -50,9 +49,9 @@ int main(void)
     if (!glfwInit())
         return -1;
 
-    glfwWindowHint(GLFW_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_VERSION_MINOR, 3);
-    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     /* Create a windowed mode window and its OpenGL context */
     GLFWwindow* window = glfwCreateWindow(winWidth, winHeight, "Create by Reynochen", NULL, NULL);
@@ -61,7 +60,7 @@ int main(void)
         return -1;
     }
 
-    /* Make the window's context current */
+    //Make the window's context current */
     glfwMakeContextCurrent(window);
 
     if (!gladLoadGL()) {
@@ -233,13 +232,13 @@ int main(void)
     //Enable z-buffer
     glEnable(GL_DEPTH_TEST);
     
+    
     //Cursor
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
     while (!glfwWindowShouldClose(window))
     {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
@@ -260,9 +259,6 @@ int main(void)
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
         
-        //Camera
-        camera_pin();
-        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         //Player draw;
         model = glm::mat4(1.0f);
         model = glm::translate(model, playerPos);
@@ -271,12 +267,17 @@ int main(void)
         glDrawArrays(GL_TRIANGLES, 0, 36);
         shader.setUniformColor("globColor", 1, 1, 1);
         //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
+        
         processInput(window);
+        //Camera
+        camera_pin();
+        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
     glfwTerminate();
+    
     return 0;
 }
 
@@ -320,7 +321,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     if(pitch < -89.0f)
        pitch = -89.0f;
     
-   
+    
     glm::vec3 dir;
     dir.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     dir.y = sin(glm::radians(pitch));
