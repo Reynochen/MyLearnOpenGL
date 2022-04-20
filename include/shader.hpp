@@ -6,6 +6,9 @@
 #include <fstream>
 #include <iostream>
 
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 class Shader
 {
     unsigned int ID;
@@ -20,7 +23,9 @@ public:
     void setUniform(const std::string name, int value);
     void setUniform(const std::string name, float value);
     void setUniform(const std::string name, bool value);
-    void setUniformColor(const std::string name, float r, float b, float g);
+    void setMat4(const std::string name, glm::mat4 matrix);
+    void setVec3(const std::string name, float x, float y, float z);
+    void setVec3(const std::string name, glm::vec3 vector);
 };
 
 #endif
